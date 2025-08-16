@@ -1,23 +1,39 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Mvc;
+using MinimalApi.DTOs;
+using MinimalApi.Dominio.Interfaces;
+using MinimalApi.Dominio.Servicos;
+using MinimalApi.Infraestrutura.Db;
+using Microsoft.OpenApi.Models;
+using MinimalApi.Dominio.ModelViews;
+
+
 var builder = WebApplication.CreateBuilder(args);
+
+// Registrando serviço e DbContext
+builder.Services.AddScoped<IAdministradorServico, AdministradorServico>();
+builder.Services.AddDbContext<DbContexto>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("ConexaoPadrao"))
+);
+
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
 var app = builder.Build();
 
-app.MapGet("/", () => "Hello World!");
+app.MapGet("/", () => Results.Json(new Home()));
 
-//Crianddo rota para validação de login
-app.MapPost("/login", (MinimalApi.DTOs.LoginDTO loginDTO) =>
+// Rota de login
+app.MapPost("/login", ([FromBody] LoginDTO loginDTO, IAdministradorServico administradorServico) =>
 {
-    if (loginDTO.Email == "adm@teste.com" && loginDTO.Senha == "123456")
-    {
-        return Results.Ok("Login realizado com sucesso!");
-    }
-    else
-    {
-        return Results.Unauthorized();
-    }
+    var adm = administradorServico.Login(loginDTO);
+    return adm != null ? Results.Ok("Login realizado com sucesso!") : Results.Unauthorized();
 });
 
-
-
+app.UseSwagger();
+app.UseSwaggerUI();
 app.Run();
+
+
 
 
